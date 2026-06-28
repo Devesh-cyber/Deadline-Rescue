@@ -15,13 +15,16 @@ class TaskRepository:
     @staticmethod
     def create_task(raw_task: Dict[str, Any]) -> ObjectId:
 
+        now = datetime.now(timezone.utc).isoformat()
         task_document = {
         **raw_task,
         "analysis": raw_task.get("analysis"),
         "execution_plan": raw_task.get("execution_plan"),
         "progress": raw_task.get("progress"),
         "emergency_mode": raw_task.get("emergency_mode"),
-        "status": raw_task.get("status", "created")
+        "status": raw_task.get("status", "created"),
+        "created_at": now,
+        "updated_at": now
     }
 
         result = tasks.insert_one(task_document)
@@ -71,7 +74,8 @@ class TaskRepository:
                 {"_id": task_id},
                 {
                     "$set": {
-                        "status": status
+                        "status": status,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -132,7 +136,8 @@ class TaskRepository:
                 {
                     "$set": {
                         "analysis": analysis,
-                        "status": "analyzed"
+                        "status": "analyzed",
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -162,7 +167,8 @@ class TaskRepository:
                 {
                     "$set": {
                         "execution_plan": execution,
-                        "status": "planned"
+                        "status": "planned",
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -191,7 +197,8 @@ class TaskRepository:
                 {"_id": task_id},
                 {
                     "$set": {
-                        "execution_plan": execution_plan
+                        "execution_plan": execution_plan,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -235,7 +242,8 @@ class TaskRepository:
                     "$set": {
                         "execution_plan": execution_plan,
                         "progress": progress,
-                        "status": status
+                        "status": status,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -253,7 +261,6 @@ class TaskRepository:
             raise
 
     @staticmethod
-    @staticmethod
     def update_emergency_mode(
         task_id: ObjectId,
         emergency_mode: Dict[str, Any]
@@ -265,7 +272,8 @@ class TaskRepository:
                 {"_id": task_id},
                 {
                     "$set": {
-                        "emergency_mode": emergency_mode
+                        "emergency_mode": emergency_mode,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
                     }
                 }
             )
@@ -289,7 +297,7 @@ class TaskRepository:
     ) -> UpdateResult:
 
         try:
-
+            fields["updated_at"] = datetime.now(timezone.utc).isoformat()
             result = tasks.update_one(
                 {"_id": task_id},
                 {
@@ -306,6 +314,44 @@ class TaskRepository:
         except Exception:
             logger.exception(
                 f"Database update failure: Generic update for task {task_id}"
+            )
+            raise
+        
+    @staticmethod        
+    def get_all_tasks():
+
+        try:
+
+            task_list = list(
+                tasks.find(
+                    {},
+                    {
+                        "_id": 1,
+                        "status": 1,
+                        "analysis.title": 1,
+                        "analysis.deadline": 1,
+                        "progress.overall_completion": 1,
+                        "emergency_mode.risk_level": 1,
+                        "created_at": 1,
+                        "updated_at": 1
+                    }
+                ).sort("created_at", -1)
+            )
+
+            # Sort in python: Critical -> Warning -> Safe
+            risk_order = {"critical": 0, "warning": 1, "safe": 2}
+            
+            task_list.sort(key=lambda t: risk_order.get(str(t.get("emergency_mode", {}).get("risk_level", "safe")).lower(), 3))
+
+            logger.info(
+                f"Database read success: Retrieved {len(task_list)} tasks"
+            )
+
+            return task_list
+
+        except Exception:
+            logger.exception(
+                "Database read failure: Could not retrieve task list"
             )
             raise
 

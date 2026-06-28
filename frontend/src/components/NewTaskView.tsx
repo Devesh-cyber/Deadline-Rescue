@@ -2,12 +2,12 @@ import React, { useState, useRef } from "react";
 import { Upload, FileText, Zap, Sparkles, HelpCircle, CheckCircle, File } from "lucide-react";
 import { ViewType } from "../types";
 
-interface TasksViewProps {
+interface NewTaskViewProps {
   onStartAnalysis: (text: string, filename: string) => void;
   isLoading: boolean;
 }
 
-export default function TasksView({ onStartAnalysis, isLoading }: TasksViewProps) {
+export default function NewTaskView({ onStartAnalysis, isLoading }: NewTaskViewProps) {
   const [pasteText, setPasteText] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ name: string; size: string } | null>(null);

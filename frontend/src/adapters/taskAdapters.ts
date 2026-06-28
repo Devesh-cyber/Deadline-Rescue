@@ -146,12 +146,14 @@ export const backendTaskToExecutionDTO = (backendTask: any): ExecutionDTO => {
   if (!backendTask) backendTask = {};
   
   const executionPlan = backendTask.execution_plan || {};
-  const phases = executionPlan.phases || [];
+  const rawPhases = executionPlan.phases || [];
+  const phases = Array.isArray(rawPhases) ? rawPhases : [];
   
   const milestones: MilestoneDTO[] = [];
   
   phases.forEach((phase: any) => {
-    const steps = phase.steps || [];
+    const rawSteps = phase.steps || [];
+    const steps = Array.isArray(rawSteps) ? rawSteps : [];
     steps.forEach((step: any) => {
       
       // Map statuses exactly to what CSS themes expect
@@ -217,11 +219,14 @@ export const backendTaskToEmergencyDTO = (backendTask: any): EmergencyDTO => {
     protocolMessage = "Task is at risk. Evaluate skippable steps to recover schedule.";
   }
   
+  const skippableSteps = emergencyMode.steps_to_skip || [];
+  const recommendations = emergencyMode.recovery_plan || [];
+  
   return {
     enabled: emergencyMode.enabled || false,
     riskLevel: emergencyMode.risk_level || "Safe",
     protocolMessage: protocolMessage,
-    skippableSteps: emergencyMode.steps_to_skip || [],
-    recommendations: emergencyMode.recovery_plan || []
+    skippableSteps: Array.isArray(skippableSteps) ? skippableSteps : [],
+    recommendations: Array.isArray(recommendations) ? recommendations : []
   };
 };

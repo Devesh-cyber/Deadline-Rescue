@@ -5,22 +5,13 @@ interface DashboardViewProps {
   plan: RescuePlan;
   setView: (view: ViewType) => void;
   onEnterExecution: () => void;
-  onSetFocusTask: (task: any) => void;
-  searchTerm: string;
 }
 
 export default function DashboardView({
   plan,
   setView,
-  onEnterExecution,
-  onSetFocusTask,
-  searchTerm
+  onEnterExecution
 }: DashboardViewProps) {
-  // Filter active tasks based on search
-  const filteredTasks = plan.activeTasks.filter(task =>
-    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.assignee.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   // SVG parameters for circular indicator
   const circleRadius = 58;
@@ -156,7 +147,7 @@ export default function DashboardView({
               <span>RESCUE INSIGHT</span>
             </h3>
             <p className="text-xs leading-relaxed font-sans font-medium">
-              {plan.insights[0]}
+              {plan.insights && plan.insights.length > 0 ? plan.insights[0] : "No insights available for this task."}
             </p>
           </div>
 
@@ -166,125 +157,34 @@ export default function DashboardView({
               // UPCOMING CRITICAL RISKS
             </h3>
             <div className="space-y-4">
-              {plan.upcomingRisks.map((risk, index) => (
-                <div key={index} className="flex items-start gap-4 py-1 border-b border-white/5 last:border-b-0">
-                  <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${
-                    risk.type === "error"
-                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                      : "bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20"
-                  }`}>
-                    {risk.type === "error" ? <AlertTriangle size={14} /> : <Clock size={14} />}
+              {(!plan.upcomingRisks || plan.upcomingRisks.length === 0) ? (
+                <p className="text-xs text-white/50 italic">No critical risks identified.</p>
+              ) : (
+                plan.upcomingRisks.map((risk, index) => (
+                  <div key={index} className="flex items-start gap-4 py-1 border-b border-white/5 last:border-b-0">
+                    <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${
+                      risk.type === "error"
+                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                        : "bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20"
+                    }`}>
+                      {risk.type === "error" ? <AlertTriangle size={14} /> : <Clock size={14} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white uppercase tracking-wider font-sans">
+                        {risk.title}
+                      </p>
+                      <p className="text-[11px] text-white/50 leading-relaxed mt-1">
+                        {risk.details}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-white uppercase tracking-wider font-sans">
-                      {risk.title}
-                    </p>
-                    <p className="text-[11px] text-white/50 leading-relaxed mt-1">
-                      {risk.details}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </section>
       </div>
 
-      {/* Task List Grid Section */}
-      <section className="space-y-6 pt-4">
-        <div className="flex justify-between items-end border-b border-white/10 pb-4">
-          <div>
-            <h2 className="text-2xl font-black font-display text-white italic">Active Pipeline</h2>
-            <p className="text-xs font-mono uppercase tracking-widest text-white/40 mt-1">
-              CURRENT PIPELINE CONTAINS {filteredTasks.length} TARGETS
-            </p>
-          </div>
-          <button
-            onClick={() => setView("tasks")}
-            className="text-primary hover:text-white font-mono font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer bg-transparent border-none"
-          >
-            <span>[ VIEW FULL PIPELINE ]</span>
-            <ArrowRight size={12} />
-          </button>
-        </div>
-
-        {/* Task Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTasks.map((task, index) => {
-            // Pick corresponding theme status styles
-            let statusColor = "bg-[#CCFF00]";
-            let statusBadge = "text-primary bg-primary/10 border-primary/20";
-            if (task.status === "AT RISK") {
-              statusColor = "bg-red-500";
-              statusBadge = "text-red-400 bg-red-500/10 border-red-500/20";
-            } else if (task.status === "ACTIVE" || task.status === "WORKING NOW") {
-              statusColor = "bg-white";
-              statusBadge = "text-white bg-white/10 border-white/25";
-            }
-
-            return (
-              <div
-                key={index}
-                onClick={() => onSetFocusTask(task)}
-                className="group bg-[#111111] hover:bg-[#161616] border border-outline-variant hover:border-primary/40 p-6 flex flex-col justify-between min-h-[230px] transition-all duration-300 cursor-pointer"
-              >
-                <div>
-                  <div className="flex justify-between items-center mb-5">
-                    {/* Status Notch and Badge */}
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 ${statusColor}`}></div>
-                      <span className="text-[10px] font-mono tracking-wider font-bold text-white/40 uppercase">
-                        TASK ID #{index + 1}
-                      </span>
-                    </div>
-                    <span className={`text-[9px] font-mono font-bold px-2.5 py-0.5 border ${statusBadge}`}>
-                      {task.status}
-                    </span>
-                  </div>
-
-                  <h4 className="text-lg font-black font-display text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">
-                    {task.title}
-                  </h4>
-
-                  {/* Metadata Row */}
-                  <div className="flex items-center gap-4 text-white/50 text-xs mt-4 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={12} className="text-primary" />
-                      <span>{task.deadline}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users size={12} className="text-primary" />
-                      <span>{task.assignee}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress bar container */}
-                <div className="space-y-2 mt-6 pt-4 border-t border-white/5">
-                  <div className="flex justify-between text-[10px] font-mono text-white/40 font-medium">
-                    <span>PROGRESS STATUS</span>
-                    <span>{task.progress}%</span>
-                  </div>
-                  <div className="w-full bg-[#050505] h-1 overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-700 ${statusColor}`}
-                      style={{ width: `${task.progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {filteredTasks.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-[#111111] border border-dashed border-white/10">
-              <CheckCircle size={32} className="mx-auto text-primary mb-3" />
-              <p className="text-sm text-white font-mono uppercase tracking-widest font-bold">NO TARGETS FOUND</p>
-              <p className="text-xs text-white/40 mt-2 font-sans font-light">Adjust your queries or register new objectives in the Pipeline console.</p>
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   );
 }
